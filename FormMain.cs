@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using System.IO;
 
 namespace VsSchedule
 {
@@ -17,7 +18,7 @@ namespace VsSchedule
         private string strMid = " ";
         private string strTimeFormat = "mm:ss";
         private string strPost = " ";
-        private string strTimeup = "開始　　　　　";
+        private string strTimeup = " playing　　　";
         private string strClear = "　　　　　　　";
         private DateTime timeTarget;    // target time
         private int secMinRemain = 30;  // min second for target
@@ -25,6 +26,7 @@ namespace VsSchedule
         private int secOffset = 5;  // (n * secTargetUnit) + secOffset
         private int maxProgress = 15;   // second
         private int mulProgress = 10;   // resolution of progress  (1/mulProgress) second
+        private string strOutFilePath = null;
 
         public FormMain()
         {
@@ -35,6 +37,12 @@ namespace VsSchedule
             strLevel.Add(enmLevel.lv_HARD, "HD");
             strLevel.Add(enmLevel.lv_EXPERT, "EX");
             strLevel.Add(enmLevel.lv_TECHNICAL, "TC");
+
+            string[] args = Environment.GetCommandLineArgs();
+            if (args.Length >= 2)
+            {
+                strOutFilePath = args[1];
+            }
         }
 
         private void FormMain_Load(object sender, EventArgs e)
@@ -47,6 +55,8 @@ namespace VsSchedule
             BtnStop.Top = BtnEasy.Top;
             BtnStop.Width = BtnHard.Right - BtnEasy.Left;
             BtnStop.Height = progressBar1.Top - BtnEasy.Top;
+            // write file
+            WriteFile();
         }
 
         private void SetTerget(enmLevel lv)
@@ -80,6 +90,19 @@ namespace VsSchedule
             sbOut.Append(strPost);
             // show text
             textNext.Text = sbOut.ToString();
+            // write file
+            WriteFile();
+        }
+
+        private void WriteFile()
+        {
+            if (strOutFilePath != null && strOutFilePath.Length > 0)
+            {
+                // write file
+                StreamWriter writer = new StreamWriter(strOutFilePath, false, Encoding.UTF8);
+                writer.WriteLine(textNext.Text);
+                writer.Close();
+            }
         }
 
         private void StopButtionShow(bool stop_show)
@@ -102,6 +125,9 @@ namespace VsSchedule
             radioTick1.Checked = false;
             radioTick2.Checked = false;
             progressBar1.Value = 0;
+            // write file
+            WriteFile();
+
         }
 
         private void timerTick_Tick(object sender, EventArgs e)
@@ -115,6 +141,8 @@ namespace VsSchedule
                 radioTick1.Checked = false;
                 radioTick2.Checked = false;
                 progressBar1.Value = 0;
+                // write file
+                WriteFile();
             }
             else
             {
