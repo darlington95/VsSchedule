@@ -132,7 +132,7 @@
             // 
             // timerTick
             // 
-            this.timerTick.Interval = 500;
+            this.timerTick.Interval = 200;
             this.timerTick.Tick += new System.EventHandler(this.timerTick_Tick);
             // 
             // textNext

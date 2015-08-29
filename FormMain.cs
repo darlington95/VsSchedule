@@ -20,9 +20,11 @@ namespace VsSchedule
         private string strTimeup = "開始　　　　　";
         private string strClear = "　　　　　　　";
         private DateTime timeTarget;    // target time
-        private int secMinRemain = 40;  // min second for target
+        private int secMinRemain = 30;  // min second for target
         private int secTargetUnit = 15; // time unit for target
+        private int secOffset = 5;  // (n * secTargetUnit) + secOffset
         private int maxProgress = 15;   // second
+        private int mulProgress = 10;   // resolution of progress  (1/mulProgress) second
 
         public FormMain()
         {
@@ -37,6 +39,7 @@ namespace VsSchedule
 
         private void FormMain_Load(object sender, EventArgs e)
         {
+            progressBar1.Maximum = maxProgress * mulProgress;
             progressBar1.Visible = false;
             StopButtionShow(false);
             textNext.Text = strClear;
@@ -50,11 +53,11 @@ namespace VsSchedule
         {
             DateTime timeBase = DateTime.Now;
             int secBase = timeBase.Second;
-            int secTarget = (secBase + secMinRemain + (secTargetUnit - 1)) / secTargetUnit * secTargetUnit;
+            int secTarget = ((secBase - secOffset + secMinRemain + (secTargetUnit - 1)) / secTargetUnit * secTargetUnit) + secOffset;
             timeTarget = timeBase.AddSeconds(secTarget - secBase);
+            timeTarget = timeTarget.AddMilliseconds(-timeBase.Millisecond);
 
             progressBar1.Value = 0;
-            progressBar1.Maximum = maxProgress;
             timerTick.Start();
 
             StringBuilder sbOut = new StringBuilder();
@@ -103,7 +106,7 @@ namespace VsSchedule
 
         private void timerTick_Tick(object sender, EventArgs e)
         {
-            if (DateTime.Now >= timeTarget)
+            if ((DateTime.Now - timeTarget).Seconds > 0)
             {
                 timerTick.Stop();
                 StopButtionShow(false);
@@ -116,11 +119,23 @@ namespace VsSchedule
             else
             {
                 StopButtionShow(true);
-                int secRemain = (timeTarget - DateTime.Now).Seconds;
+                TimeSpan spanRemain = timeTarget - DateTime.Now;
                 // progress
-                if (secRemain <= maxProgress)
+                if (spanRemain.Seconds < maxProgress)
                 {
-                    progressBar1.Value = maxProgress - secRemain;
+                    int msRemain = maxProgress * 1000 - (spanRemain.Seconds * 1000 + spanRemain.Milliseconds);
+                    if (msRemain < 0)
+                    {
+                        progressBar1.Value = 0;
+                    }
+                    else if (msRemain > maxProgress * 1000)
+                    {
+                        progressBar1.Value = progressBar1.Maximum;
+                    }
+                    else
+                    {
+                        progressBar1.Value = msRemain * mulProgress / 1000;
+                    }
                     progressBar1.Visible = true;
                 }
                 else
