@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
+using BouyomiChanCall;
 
 namespace VsSchedule
 {
@@ -27,6 +28,10 @@ namespace VsSchedule
         private int maxProgress = 15;   // second
         private int mulProgress = 10;   // resolution of progress  (1/mulProgress) second
         private string strOutFilePath = null;
+        private string strSpeakBegin = "ぶいえすスケジュール";    // beginning speak
+        private int iSpeak10 = 10;  // seconds for speak before
+        private string strSpeak10 = "10秒";  // speak 10 seconds before
+        private bool bDoneSpeak10 = true;  // flag of speak 10
 
         public FormMain()
         {
@@ -57,6 +62,16 @@ namespace VsSchedule
             BtnStop.Height = progressBar1.Top - BtnEasy.Top;
             // write file
             WriteFile();
+
+            // speak
+            try
+            {
+                BouyomiChan.Speak(strSpeakBegin);
+            }
+            catch
+            {
+                // no care
+            }
         }
 
         private void SetTerget(enmLevel lv)
@@ -67,7 +82,16 @@ namespace VsSchedule
             timeTarget = timeBase.AddSeconds(secTarget - secBase);
             timeTarget = timeTarget.AddMilliseconds(-timeBase.Millisecond);
 
+            // speak check request
+            if ((timeTarget - timeBase).TotalSeconds > iSpeak10)
+            {
+                bDoneSpeak10 = false;
+            }
+
+            // progress reset
             progressBar1.Value = 0;
+            
+            // timer
             timerTick.Start();
 
             StringBuilder sbOut = new StringBuilder();
@@ -132,7 +156,7 @@ namespace VsSchedule
 
         private void timerTick_Tick(object sender, EventArgs e)
         {
-            if ((DateTime.Now - timeTarget).Seconds > 0)
+            if ((DateTime.Now - timeTarget).TotalSeconds > 0)
             {
                 timerTick.Stop();
                 StopButtionShow(false);
@@ -149,9 +173,9 @@ namespace VsSchedule
                 StopButtionShow(true);
                 TimeSpan spanRemain = timeTarget - DateTime.Now;
                 // progress
-                if (spanRemain.Seconds < maxProgress)
+                if (spanRemain.TotalSeconds < maxProgress)
                 {
-                    int msRemain = maxProgress * 1000 - (spanRemain.Seconds * 1000 + spanRemain.Milliseconds);
+                    int msRemain = maxProgress * 1000 - ((int)spanRemain.TotalSeconds * 1000 + spanRemain.Milliseconds);
                     if (msRemain < 0)
                     {
                         progressBar1.Value = 0;
@@ -178,6 +202,24 @@ namespace VsSchedule
                 else
                 {
                     radioTick1.Checked = true;
+                }
+
+                // speak
+                if (bDoneSpeak10 == false)
+                {
+                    if (spanRemain.TotalSeconds < iSpeak10)
+                    {
+                        bDoneSpeak10 = true;
+                        // speak
+                        try
+                        {
+                            BouyomiChan.Speak(strSpeak10);
+                        }
+                        catch
+                        {
+                            // no care
+                        }
+                    }
                 }
             }
         }
